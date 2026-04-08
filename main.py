@@ -24,6 +24,12 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env
 
+# ── Logging Setup ─────────────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+log = logging.getLogger("openenv")
+
+# ── Hugging Face Secrets Support ─────────────────────────────────────────
+
 # Hugging Face Secrets Support
 api_key = os.getenv("OPENAI_API_KEY")
 api_base = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
@@ -51,9 +57,7 @@ from pydantic import BaseModel
 
 from env.environment import OpenEnvEnvironment, Action, TaskID
 
-# ── Logging ───────────────────────────────────────────────────────────────
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-log = logging.getLogger("openenv")
+# ── Path setup so imports work regardless of CWD ──────────────────────────
 
 # ── FastAPI App ────────────────────────────────────────────────────────────
 app = FastAPI(
