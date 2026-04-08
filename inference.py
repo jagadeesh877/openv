@@ -80,9 +80,11 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-API_KEY      = os.getenv("OPENAI_API_KEY") or "EMPTY"
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://api.groq.com/openai/v1"
-MODEL_NAME   = os.getenv("MODEL_NAME") or "qwen/qwen3-32b"
+# Platform injects API_KEY and API_BASE_URL — use them directly.
+# OPENAI_API_KEY is kept as a local-dev fallback only.
+API_KEY      = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY") or "EMPTY"
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://api.openai.com/v1"
+MODEL_NAME   = os.getenv("MODEL_NAME") or "gpt-4o-mini"
 TASK_NAME    = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or "email_triage"
 ENV_BASE_URL = (os.getenv("ENV_BASE_URL") or "http://localhost:7860").rstrip("/")
 
@@ -202,8 +204,11 @@ def extract_action(text: str, valid_actions: List[str]) -> str:
 
 
 def _llm_call_openai(messages: list) -> str:
-    """Call LLM using the openai SDK."""
-    client = _OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    """Call LLM using the openai SDK — always via the platform-injected API_BASE_URL."""
+    client = _OpenAI(
+        base_url=os.environ.get("API_BASE_URL", API_BASE_URL),
+        api_key=os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY") or API_KEY,
+    )
     resp = client.chat.completions.create(
         model=MODEL_NAME,
         messages=messages,
@@ -214,8 +219,10 @@ def _llm_call_openai(messages: list) -> str:
 
 
 def _llm_call_urllib(messages: list) -> str:
-    """Call LLM via raw HTTP (stdlib urllib) — fallback when openai is absent."""
+    """Call LLM via raw HTTP (stdlib urllib) — fallback when openai SDK is absent."""
     import json, urllib.request
+    _base = os.environ.get("API_BASE_URL", API_BASE_URL)
+    _key  = os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY") or API_KEY
     payload = {
         "model": MODEL_NAME,
         "messages": messages,
@@ -224,11 +231,11 @@ def _llm_call_urllib(messages: list) -> str:
     }
     data = json.dumps(payload).encode()
     req = urllib.request.Request(
-        f"{API_BASE_URL}/chat/completions",
+        f"{_base}/chat/completions",
         data=data,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {API_KEY}",
+            "Authorization": f"Bearer {_key}",
         },
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
