@@ -28,7 +28,8 @@ from pydantic import BaseModel
 from env.environment import OpenEnvEnvironment, Action, Observation
 
 # --- Configuration ---
-API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY") or "EMPTY"
+api_key = os.getenv("OPENAI_API_KEY")
+API_KEY = api_key or "EMPTY"
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://api.openai.com/v1"
 
 # Default to gpt-4o-mini for OpenAI/Groq or similar providers

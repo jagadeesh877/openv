@@ -24,6 +24,20 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env
 
+# Hugging Face Secrets Support
+api_key = os.getenv("OPENAI_API_KEY")
+api_base = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+model_name = os.getenv("MODEL_NAME", "gpt-4o-mini")
+
+# Log configuration status (for HF Spaces debugging)
+if api_key:
+    log.info(f"OpenAI API Key detected (length: {len(api_key)})")
+else:
+    log.warning("OPENAI_API_KEY not found in environment!")
+
+log.info(f"API Base URL: {api_base}")
+log.info(f"Model Name: {model_name}")
+
 # ── Path setup so imports work regardless of CWD ──────────────────────────
 ROOT = os.path.dirname(os.path.abspath(__file__))
 if ROOT not in sys.path:
@@ -461,4 +475,5 @@ if __name__ == "__main__":
         print("=" * 60 + "\n")
     else:
         import uvicorn
-        uvicorn.run("main:app", host="0.0.0.0", port=7860, reload=False, log_level="info")
+        port = int(os.getenv("PORT", 7860))
+        uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False, log_level="info")
