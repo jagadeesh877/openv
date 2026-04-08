@@ -119,6 +119,28 @@ def root():
     }
 
 
+_TASK_GRADER_META = {
+    "email_triage": {
+        "class": "EmailGrader",
+        "module": "graders.email_grader",
+        "score_range": [0.0, 1.0],
+        "partial_credit": True,
+    },
+    "code_review": {
+        "class": "CodeGrader",
+        "module": "graders.code_grader",
+        "score_range": [0.0, 1.0],
+        "partial_credit": True,
+    },
+    "meeting_scheduler": {
+        "class": "MeetingGrader",
+        "module": "graders.meeting_grader",
+        "score_range": [0.0, 1.0],
+        "partial_credit": True,
+    },
+}
+
+
 @app.get("/tasks", summary="List available tasks")
 def list_tasks():
     return {
@@ -128,20 +150,52 @@ def list_tasks():
                 "title": "Email Triage System",
                 "description": "Prioritize, respond to, or delete 8 realistic work emails.",
                 "difficulty": "easy",
+                "max_steps": 30,
+                "reward_range": [-1.0, 1.0],
+                "grader": _TASK_GRADER_META["email_triage"],
             },
             {
                 "id": "code_review",
                 "title": "Code Review Assistant",
                 "description": "Detect bugs, suggest fixes, set severity, approve/reject 6 code snippets.",
                 "difficulty": "medium",
+                "max_steps": 30,
+                "reward_range": [-1.0, 1.0],
+                "grader": _TASK_GRADER_META["code_review"],
             },
             {
                 "id": "meeting_scheduler",
                 "title": "Meeting Scheduler",
                 "description": "Schedule 10 meetings resolving conflicts and optimising preferences.",
                 "difficulty": "hard",
+                "max_steps": 30,
+                "reward_range": [-1.0, 1.0],
+                "grader": _TASK_GRADER_META["meeting_scheduler"],
             },
         ]
+    }
+
+
+@app.get("/graders", summary="List graders for all tasks")
+def list_graders():
+    """Return grader metadata for every task — required by OpenEnv validator."""
+    return {
+        "graders": [
+            {"task_id": task_id, **meta}
+            for task_id, meta in _TASK_GRADER_META.items()
+        ]
+    }
+
+
+@app.get("/score", summary="Get final score of current episode")
+def get_score():
+    """Return the final graded score for the current episode."""
+    global _env
+    if _env is None:
+        return {"final_score": 0.0, "status": "not_initialized"}
+    return {
+        "final_score": round(_env.final_score(), 4),
+        "status": "ok",
     }
 
 
