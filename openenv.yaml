@@ -1,0 +1,87 @@
+name: openenv-ai-workspace
+
+title: "OpenEnv AI Workspace — Real-World Task Simulation"
+description: |
+  A production-grade OpenEnv-compatible AI environment that simulates
+  three real-world professional workflows for agent evaluation.
+
+version: "1.0.0"
+author: "OpenEnv Team"
+tags: [openenv]
+
+tasks:
+  - id: email_triage
+    title: "Email Triage System"
+    description: >
+      Agent manages a professional inbox of 8 emails. Must correctly
+      prioritize, respond, or delete emails based on urgency, sender
+      importance, and content category.
+    difficulty: easy
+    max_steps: 30
+    observation_schema: Observation
+    action_schema: Action
+    reward_range: [-1.0, 1.0]
+
+  - id: code_review
+    title: "Code Review Assistant"
+    description: >
+      Agent reviews 6 Python code snippets, each containing a realistic bug.
+      Must detect the bug category, suggest the correct fix, set severity,
+      and give an approve/reject verdict.
+    difficulty: medium
+    max_steps: 30
+    observation_schema: Observation
+    action_schema: Action
+    reward_range: [-1.0, 1.0]
+
+  - id: meeting_scheduler
+    title: "Meeting Scheduler"
+    description: >
+      Agent processes 10 meeting requests on a single calendar day. Must
+      resolve conflicts, respect attendee preferences and no-meeting windows,
+      and handle must-schedule mandates.
+    difficulty: hard
+    max_steps: 30
+    observation_schema: Observation
+    action_schema: Action
+    reward_range: [-1.0, 1.0]
+
+environment:
+  class: OpenEnvEnvironment
+  module: env.environment
+  reset_fn: reset
+  step_fn: step
+  state_fn: state
+  deterministic: true
+  seeded: false
+
+graders:
+  email_triage:
+    class: EmailGrader
+    module: graders.email_grader
+    score_range: [0.0, 1.0]
+    partial_credit: true
+
+  code_review:
+    class: CodeGrader
+    module: graders.code_grader
+    score_range: [0.0, 1.0]
+    partial_credit: true
+
+  meeting_scheduler:
+    class: MeetingGrader
+    module: graders.meeting_grader
+    score_range: [0.0, 1.0]
+    partial_credit: true
+
+baseline_agent:
+  script: main.py
+  mode_flag: "--mode agent"
+  expected_score_range: [0.60, 0.90]
+
+deployment:
+  platform: huggingface_spaces
+  sdk: docker
+  port: 7860
+  framework: fastapi
+  base_image: python:3.10-slim

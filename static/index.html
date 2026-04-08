@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenEnv Dashboard | AI Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="dark-theme">
+    <div class="background-blob blob-1"></div>
+    <div class="background-blob blob-2"></div>
+    
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="logo-icon">🤖</span>
+                <div class="logo-text">
+                    <h1>OpenEnv Dashboard</h1>
+                    <p>Production-Grade AI Evaluation</p>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item" id="stat-task">
+                    <span class="stat-label">Task</span>
+                    <span class="stat-value">---</span>
+                </div>
+                <div class="stat-item" id="stat-step">
+                    <span class="stat-label">Step</span>
+                    <span class="stat-value">0 / 30</span>
+                </div>
+                <div class="stat-item" id="stat-reward">
+                    <span class="stat-label">Cumulative Reward</span>
+                    <span class="stat-value highlight">0.0000</span>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <button id="btn-reset" class="btn btn-outline">🔄 Reset Environment</button>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <aside class="sidebar">
+                <section class="control-section">
+                    <h3>Task Selection</h3>
+                    <div class="task-grid" id="task-selector">
+                        <button class="task-card active" data-task="email_triage">
+                            <span class="task-icon">📧</span>
+                            <div class="task-info">
+                                <h4>Email Triage</h4>
+                                <span class="difficulty easy">Easy</span>
+                            </div>
+                        </button>
+                        <button class="task-card" data-task="code_review">
+                            <span class="task-icon">💻</span>
+                            <div class="task-info">
+                                <h4>Code Review</h4>
+                                <span class="difficulty medium">Medium</span>
+                            </div>
+                        </button>
+                        <button class="task-card" data-task="meeting_scheduler">
+                            <span class="task-icon">📅</span>
+                            <div class="task-info">
+                                <h4>Scheduler</h4>
+                                <span class="difficulty hard">Hard</span>
+                            </div>
+                        </button>
+                    </div>
+                </section>
+
+                <section class="log-section">
+                    <h3>Observation Context</h3>
+                    <div id="observation-context" class="context-viewer">
+                        <p class="empty-hint">Select a task to begin...</p>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="main-content">
+                <div class="state-container card">
+                    <div class="card-header">
+                        <h3>Current State</h3>
+                        <span id="terminal-badge" class="badge">Active</span>
+                    </div>
+                    <div id="state-description" class="state-description">
+                        Initializing environment...
+                    </div>
+                </div>
+
+                <div class="visualizer-container card" id="visualizer-panel">
+                    <!-- Dynamic visualization injected here -->
+                    <div class="placeholder-viz">
+                        <div class="pulse-loader"></div>
+                        <p>Waiting for task initialization...</p>
+                    </div>
+                </div>
+
+                <div class="action-panel card">
+                    <div class="card-header">
+                        <h3>Available Actions</h3>
+                        <p id="action-hint">The agent selects these automatically, or you can test them manually below.</p>
+                    </div>
+                    <div id="action-buttons" class="action-grid">
+                        <!-- Buttons injected dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <aside class="feed-sidebar sidebar">
+                <section class="feed-section">
+                    <div class="feed-header">
+                        <h3>Agent Live Feed</h3>
+                        <div class="live-indicator"><span class="dot"></span> LIVE</div>
+                    </div>
+                    <div id="agent-feed" class="feed-content">
+                        <!-- Step logs injected here -->
+                    </div>
+                </section>
+                
+                <section class="final-score-section card highlight-card">
+                    <h4>Final Evaluation Score</h4>
+                    <div class="score-display">
+                        <span id="final-score">0.00</span>
+                    </div>
+                    <p id="evaluation-status">Awaiting task completion</p>
+                </section>
+            </aside>
+        </main>
+        
+        <footer class="app-footer">
+            <div class="footer-links">
+                <a href="/docs" target="_blank">API Documentation</a>
+                <span class="separator">•</span>
+                <span>OpenEnv Compliant (1.0.0)</span>
+            </div>
+            <div class="system-status">
+                <span id="ping-status">Server: Online</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <script src="static/app.js"></script>
+</body>
+</html>
