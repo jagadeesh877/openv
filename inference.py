@@ -85,7 +85,7 @@ except ImportError:
 API_KEY      = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY") or "EMPTY"
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://api.openai.com/v1"
 MODEL_NAME   = os.getenv("MODEL_NAME") or "gpt-4o-mini"
-TASK_NAME    = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or "email_triage"
+TASK_NAME    = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or "ALL"
 ENV_BASE_URL = (os.getenv("ENV_BASE_URL") or "http://localhost:7860").rstrip("/")
 
 MAX_STEPS               = 30
