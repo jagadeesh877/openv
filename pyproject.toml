@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "openenv"
@@ -25,6 +25,7 @@ dependencies = [
     "pydantic>=2.6.0",
     "openai>=1.14.0",
     "python-dotenv>=1.0.1",
+    "openenv-core>=0.2.0",
 ]
 
 [project.urls]
@@ -32,7 +33,8 @@ dependencies = [
 "Bug Reports" = "https://huggingface.co/spaces/jagaxas/openenv/discussions"
 
 [project.scripts]
-openenv-server = "main:app"
+server = "server.app:main"
+openenv-server = "server.app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
