@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "openenv"
+version = "1.0.0"
+description = "Production-grade OpenEnv-compatible AI simulation environment with three real-world tasks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "jagaxas", email = "jagaxas@huggingface.co" }
+]
+keywords = ["ai", "environment", "reinforcement-learning", "evaluation", "openenv"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Framework :: FastAPI",
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.6.0",
+    "openai>=1.14.0",
+    "python-dotenv>=1.0.1",
+]
+
+[project.urls]
+"Homepage" = "https://huggingface.co/spaces/jagaxas/openenv"
+"Bug Reports" = "https://huggingface.co/spaces/jagaxas/openenv/discussions"
+
+[project.scripts]
+openenv-server = "main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["openenv_logic*", "tasks*", "graders*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.json", "static/*"]
