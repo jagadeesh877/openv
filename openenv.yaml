@@ -21,6 +21,11 @@ tasks:
     observation_schema: Observation
     action_schema: Action
     reward_range: [-1.0, 1.0]
+    grader:
+      class: EmailGrader
+      module: graders.email_grader
+      score_range: [0.0, 1.0]
+      partial_credit: true
 
   - id: code_review
     title: "Code Review Assistant"
@@ -33,6 +38,11 @@ tasks:
     observation_schema: Observation
     action_schema: Action
     reward_range: [-1.0, 1.0]
+    grader:
+      class: CodeGrader
+      module: graders.code_grader
+      score_range: [0.0, 1.0]
+      partial_credit: true
 
   - id: meeting_scheduler
     title: "Meeting Scheduler"
@@ -45,6 +55,11 @@ tasks:
     observation_schema: Observation
     action_schema: Action
     reward_range: [-1.0, 1.0]
+    grader:
+      class: MeetingGrader
+      module: graders.meeting_grader
+      score_range: [0.0, 1.0]
+      partial_credit: true
 
 environment:
   class: OpenEnvEnvironment
