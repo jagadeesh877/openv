@@ -16,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all project files
 COPY . .
 
-# Create __init__ files for package resolution
-RUN touch env/__init__.py tasks/__init__.py graders/__init__.py
+# Create __init__ files (ensure directories exist if needed, 
+# but they are already in the source)
 
 # Expose the Hugging Face Spaces port
 EXPOSE 7860
