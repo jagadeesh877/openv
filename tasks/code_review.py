@@ -159,7 +159,7 @@ class CodeReviewTask:
             "description": (
                 f"CODE REVIEW [Snippet {self._current_index+1}/{len(self._snippets)}]: "
                 f"'{snip['title']}'. Current stage: {self._current_stage}. "
-                f"Please select of the following actions to proceed."
+                f"Please select one of the following actions to proceed."
             ),
             "context": self._snippet_context(snip),
         }
