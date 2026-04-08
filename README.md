@@ -1,3 +1,12 @@
+---
+title: OpenEnv AI Workspace
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # 🤖 OpenEnv AI Workspace
 
 **Production-grade OpenEnv-compatible AI environment for agent evaluation**
