@@ -99,6 +99,10 @@ class StepRequest(BaseModel):
     parameters: Dict[str, Any] = {}
 
 
+class OptionalResetRequest(BaseModel):
+    task_id: Optional[str] = "email_triage"
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
 @app.get("/", summary="Environment Dashboard")
@@ -142,12 +146,13 @@ def list_tasks():
 
 
 @app.post("/reset", summary="Reset the environment")
-def reset(request: ResetRequest):
+def reset(request: Optional[OptionalResetRequest] = None):
     global _env
     try:
-        _env = OpenEnvEnvironment(task_id=request.task_id)
+        task_id = (request.task_id if request and request.task_id else None) or "email_triage"
+        _env = OpenEnvEnvironment(task_id=task_id)
         obs = _env.reset()
-        log.info(f"Environment reset for task: {request.task_id}")
+        log.info(f"Environment reset for task: {task_id}")
         return obs.model_dump()
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
