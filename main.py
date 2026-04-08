@@ -55,7 +55,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from env.environment import OpenEnvEnvironment, Action, TaskID
+from openenv_logic.environment import OpenEnvEnvironment, Action, TaskID
 
 # ── Path setup so imports work regardless of CWD ──────────────────────────
 

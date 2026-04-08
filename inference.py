@@ -30,10 +30,10 @@ from env.environment import OpenEnvEnvironment, Action, Observation
 # --- Configuration ---
 api_key = os.getenv("OPENAI_API_KEY")
 API_KEY = api_key or "EMPTY"
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://api.openai.com/v1"
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://api.groq.com/openai/v1"
 
 # Default to gpt-4o-mini for OpenAI/Groq or similar providers
-DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_MODEL = "qwen/qwen3-32b"
 MODEL_NAME = os.getenv("MODEL_NAME") or DEFAULT_MODEL
 TASK_NAME = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or "email_triage"
 

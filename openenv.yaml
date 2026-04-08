@@ -48,7 +48,7 @@ tasks:
 
 environment:
   class: OpenEnvEnvironment
-  module: env.environment
+  module: openenv_logic.environment
   reset_fn: reset
   step_fn: step
   state_fn: state
