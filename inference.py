@@ -91,7 +91,7 @@ MODEL_NAME   = os.getenv("MODEL_NAME") or "gpt-4o-mini"
 TASK_NAME    = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or "ALL"
 ENV_BASE_URL = (os.getenv("ENV_BASE_URL") or "http://localhost:7860").rstrip("/")
 
-MAX_STEPS               = 20  # Reduced from 30 to stay within 20-minute eval limit
+MAX_STEPS               = 30  # Increased to allow all tasks to finish
 TEMPERATURE             = 0.1
 MAX_TOKENS              = 512
 SUCCESS_SCORE_THRESHOLD = 0.5

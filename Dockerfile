@@ -27,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/')" || exit 1
 
 # Start FastAPI server on port 7860
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860", "--log-level", "info"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860", "--loop", "uvloop", "--http", "httptools", "--log-level", "info", "--timeout-keep-alive", "60"]

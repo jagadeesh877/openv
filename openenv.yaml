@@ -17,7 +17,7 @@ tasks:
       prioritize, respond, or delete emails based on urgency, sender
       importance, and content category.
     difficulty: easy
-    max_steps: 20
+    max_steps: 30
     observation_schema: Observation
     action_schema: Action
     reward_range: [-1.0, 1.0]
@@ -34,7 +34,7 @@ tasks:
       Must detect the bug category, suggest the correct fix, set severity,
       and give an approve/reject verdict.
     difficulty: medium
-    max_steps: 20
+    max_steps: 30
     observation_schema: Observation
     action_schema: Action
     reward_range: [-1.0, 1.0]
@@ -51,7 +51,7 @@ tasks:
       resolve conflicts, respect attendee preferences and no-meeting windows,
       and handle must-schedule mandates.
     difficulty: hard
-    max_steps: 20
+    max_steps: 30
     observation_schema: Observation
     action_schema: Action
     reward_range: [-1.0, 1.0]
