@@ -8,8 +8,10 @@ This script connects to the running environment server via HTTP
 (no local package imports required — fully self-contained).
 
 Required Environment Variables:
-- OPENAI_API_KEY: Your OpenAI/Groq API key.
-- API_BASE_URL: The LLM endpoint (defaults to Groq).
+- HF_TOKEN: Hugging Face token (injected by hackathon judge; primary key).
+- API_KEY: Platform-injected API key (first priority).
+- OPENAI_API_KEY: Local dev fallback API key.
+- API_BASE_URL: The LLM endpoint (defaults to OpenAI).
 - MODEL_NAME: The model identifier (optional).
 - TASK_NAME / OPENENV_TASK: one of [email_triage, code_review, meeting_scheduler].
 - ENV_BASE_URL: Base URL of the running env server (default: http://localhost:7860).
@@ -81,14 +83,15 @@ except ImportError:
 # Configuration
 # ---------------------------------------------------------------------------
 # Platform injects API_KEY and API_BASE_URL — use them directly.
+# HF_TOKEN is injected by the hackathon judge machine.
 # OPENAI_API_KEY is kept as a local-dev fallback only.
-API_KEY      = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY") or "EMPTY"
+API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or "EMPTY"
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://api.openai.com/v1"
 MODEL_NAME   = os.getenv("MODEL_NAME") or "gpt-4o-mini"
 TASK_NAME    = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or "ALL"
 ENV_BASE_URL = (os.getenv("ENV_BASE_URL") or "http://localhost:7860").rstrip("/")
 
-MAX_STEPS               = 30
+MAX_STEPS               = 20  # Reduced from 30 to stay within 20-minute eval limit
 TEMPERATURE             = 0.1
 MAX_TOKENS              = 512
 SUCCESS_SCORE_THRESHOLD = 0.5
@@ -103,10 +106,11 @@ log = logging.getLogger("inference")
 def log_start(task: str, env: str, model: str) -> None:
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
-def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str], info: Optional[dict] = None) -> None:
     error_val = error if error else "null"
     done_val  = str(done).lower()
-    print(f"[STEP] step={step} action={action} reward={reward:.4f} done={done_val} error={error_val}", flush=True)
+    info_val  = str(info) if info else "{}"
+    print(f"[STEP] step={step} action={action} reward={reward:.4f} done={done_val} error={error_val} info={info_val}", flush=True)
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.4f}" for r in rewards)
@@ -207,7 +211,8 @@ def _llm_call_openai(messages: list) -> str:
     """Call LLM using the openai SDK — always via the platform-injected API_BASE_URL."""
     client = _OpenAI(
         base_url=os.environ.get("API_BASE_URL", API_BASE_URL),
-        api_key=os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY") or API_KEY,
+        api_key=(os.environ.get("API_KEY") or os.environ.get("HF_TOKEN")
+                 or os.environ.get("OPENAI_API_KEY") or API_KEY),
     )
     resp = client.chat.completions.create(
         model=MODEL_NAME,
@@ -222,7 +227,8 @@ def _llm_call_urllib(messages: list) -> str:
     """Call LLM via raw HTTP (stdlib urllib) — fallback when openai SDK is absent."""
     import json, urllib.request
     _base = os.environ.get("API_BASE_URL", API_BASE_URL)
-    _key  = os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY") or API_KEY
+    _key  = (os.environ.get("API_KEY") or os.environ.get("HF_TOKEN")
+             or os.environ.get("OPENAI_API_KEY") or API_KEY)
     payload = {
         "model": MODEL_NAME,
         "messages": messages,
@@ -324,7 +330,8 @@ async def run_evaluation(task_id: str) -> float:
             steps_taken = step
 
             log_step(step=step, action=action_type, reward=rwd,
-                     done=result.get("done", False), error=None)
+                     done=result.get("done", False), error=None,
+                     info=result.get("info", {}))
 
             if result.get("done", False):
                 break

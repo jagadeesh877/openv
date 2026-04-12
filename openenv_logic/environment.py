@@ -24,6 +24,9 @@ class Observation(BaseModel):
     state_description: str = Field(..., description="Human-readable state summary")
     available_actions: List[str] = Field(..., description="List of valid action names")
     context: Dict[str, Any] = Field(default_factory=dict, description="Task-specific structured context")
+    current_score: float = Field(default=0.0, description="Current normalized grader score (0.0-1.0)")
+    cumulative_reward: float = Field(default=0.0, description="Running sum of rewards")
+    final_score: float = Field(default=0.0, description="Normalized score from the grader")
     done: bool = Field(default=False, description="Whether the episode is finished")
 
 
@@ -126,6 +129,9 @@ class OpenEnvEnvironment:
             state_description=initial_state["description"],
             available_actions=initial_state["available_actions"],
             context=initial_state["context"],
+            current_score=0.0,
+            cumulative_reward=0.0,
+            final_score=0.0,
             done=False,
         )
 
@@ -254,5 +260,8 @@ class OpenEnvEnvironment:
             state_description=current["description"],
             available_actions=self._task.get_valid_actions(),
             context=context,
+            current_score=round(self.final_score(), 4),
+            cumulative_reward=round(self._cumulative_reward, 4),
+            final_score=round(self.final_score(), 4),
             done=self._done,
         )

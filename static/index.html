@@ -35,11 +35,25 @@
                     <span class="stat-label">Cumulative Reward</span>
                     <span class="stat-value highlight">0.0000</span>
                 </div>
+                <div class="stat-item" id="stat-score">
+                    <span class="stat-label">Success Rate</span>
+                    <span class="stat-value highlight-green">0%</span>
+                </div>
             </div>
             <div class="nav-controls">
-                <button id="btn-reset" class="btn btn-outline">🔄 Reset Environment</button>
+                <button id="btn-run-llm" class="btn btn-premium">🚀 Run LLM Evaluation</button>
+                <button id="btn-run-benchmark" class="btn btn-primary">🏆 Run Baseline</button>
+                <button id="btn-reset" class="btn btn-outline">🔄 Reset</button>
             </div>
         </header>
+        
+        <div id="agent-status-bar" class="agent-status-bar hidden">
+            <span class="status-icon">🤖</span>
+            <span id="agent-status-text">LLM Agent is evaluating...</span>
+            <div class="progress-container">
+                <div id="agent-progress-bar" class="progress-bar"></div>
+            </div>
+        </div>
 
         <main class="app-main">
             <aside class="sidebar">
@@ -100,7 +114,13 @@
                 <div class="action-panel card">
                     <div class="card-header">
                         <h3>Available Actions</h3>
-                        <p id="action-hint">The agent selects these automatically, or you can test them manually below.</p>
+                        <div class="auto-pilot-wrapper">
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-autopilot">
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="label-text">Auto-Pilot AI</span>
+                        </div>
                     </div>
                     <div id="action-buttons" class="action-grid">
                         <!-- Buttons injected dynamically -->
@@ -109,22 +129,53 @@
             </section>
 
             <aside class="feed-sidebar sidebar">
-                <section class="feed-section">
-                    <div class="feed-header">
+                <section id="evaluation-board" class="card highlight-card">
+                    <div class="card-header">
+                        <h3>Benchmark Scoreboard</h3>
+                        <div id="eval-live-indicator" class="live-indicator hidden"><span class="dot"></span> ACTIVE</div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="eval-table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Step</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eval-table-body">
+                                <tr data-task="email_triage">
+                                    <td>Emails</td>
+                                    <td class="eval-step">-</td>
+                                    <td class="eval-score">-</td>
+                                </tr>
+                                <tr data-task="code_review">
+                                    <td>Code</td>
+                                    <td class="eval-step">-</td>
+                                    <td class="eval-score">-</td>
+                                </tr>
+                                <tr data-task="meeting_scheduler">
+                                    <td>Calendar</td>
+                                    <td class="eval-step">-</td>
+                                    <td class="eval-score">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="total-score-area">
+                        <span class="label">Mean Score:</span>
+                        <span id="final-score" class="score-value">0.00</span>
+                    </div>
+                </section>
+
+                <section class="feed-section card">
+                    <div class="card-header">
                         <h3>Agent Live Feed</h3>
                         <div class="live-indicator"><span class="dot"></span> LIVE</div>
                     </div>
                     <div id="agent-feed" class="feed-content">
                         <!-- Step logs injected here -->
                     </div>
-                </section>
-                
-                <section class="final-score-section card highlight-card">
-                    <h4>Final Evaluation Score</h4>
-                    <div class="score-display">
-                        <span id="final-score">0.00</span>
-                    </div>
-                    <p id="evaluation-status">Awaiting task completion</p>
                 </section>
             </aside>
         </main>

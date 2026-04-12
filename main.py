@@ -31,15 +31,17 @@ log = logging.getLogger("openenv")
 # ── Hugging Face Secrets Support ─────────────────────────────────────────
 
 # Hugging Face Secrets Support
-api_key = os.getenv("OPENAI_API_KEY")
+# Priority: API_KEY > HF_TOKEN > OPENAI_API_KEY  (mirrors inference.py)
+api_key = (os.getenv("API_KEY") or os.getenv("HF_TOKEN")
+           or os.getenv("OPENAI_API_KEY"))
 api_base = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 model_name = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 # Log configuration status (for HF Spaces debugging)
 if api_key:
-    log.info(f"OpenAI API Key detected (length: {len(api_key)})")
+    log.info(f"API Key detected (length: {len(api_key)})")
 else:
-    log.warning("OPENAI_API_KEY not found in environment!")
+    log.warning("No API key found! Set HF_TOKEN, API_KEY, or OPENAI_API_KEY.")
 
 log.info(f"API Base URL: {api_base}")
 log.info(f"Model Name: {model_name}")
@@ -49,11 +51,14 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+from openenv_logic.environment import OpenEnvEnvironment, Action, Observation
+from inference_engine import InferenceAgent, run_llm_benchmark_task
 
 from openenv_logic.environment import OpenEnvEnvironment, Action, TaskID
 
@@ -87,6 +92,8 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # ── Global environment state ───────────────────────────────────────────────
 _env: Optional[OpenEnvEnvironment] = None
+_inference_agent = InferenceAgent()
+_last_benchmark_results: Optional[Dict[str, Any]] = None
 
 
 # ── Request/Response models ────────────────────────────────────────────────
@@ -117,6 +124,18 @@ def root():
         "status": "static_not_found",
         "hint": "Check /docs for API description."
     }
+
+
+@app.get("/health", summary="Health check — instant response for cold-start probes")
+def health():
+    """Lightweight health check endpoint. Always returns 200 immediately."""
+    return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/ping", summary="Ping — alias health check")
+def ping():
+    """Alias for /health — responds instantly to keep-alive pings."""
+    return {"pong": True}
 
 
 _TASK_GRADER_META = {
@@ -200,21 +219,24 @@ def get_score():
 
 
 @app.post("/reset", summary="Reset the environment")
-def reset(request: Optional[OptionalResetRequest] = None):
+def reset(request: ResetRequest = ResetRequest()):
     global _env
+    log.info(f"[UI CALL] /reset request for task: {request.task_id}")
     try:
-        task_id = (request.task_id if request and request.task_id else None) or "email_triage"
+        task_id = request.task_id or "email_triage"
         _env = OpenEnvEnvironment(task_id=task_id)
         obs = _env.reset()
-        log.info(f"Environment reset for task: {task_id}")
+        log.info(f"Environment reset successfully for: {task_id}")
         return obs.model_dump()
-    except ValueError as e:
+    except Exception as e:
+        log.error(f"Reset error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/step", summary="Apply an action")
 def step(request: StepRequest):
     global _env
+    log.info(f"[UI CALL] /step -> {request.action_type}")
     if _env is None:
         raise HTTPException(status_code=400, detail="Environment not initialized. POST /reset first.")
     try:
@@ -233,20 +255,170 @@ def state():
     return _env.state()
 
 
-@app.get("/run-baseline", summary="Run baseline agent across all tasks")
-def run_baseline():
-    """Execute the baseline rule-based agent for all three tasks and return scores."""
-    log.info("Running baseline agent...")
-    results = run_baseline_agent()
-    log.info(f"Baseline complete: {results}")
+@app.get("/run-baseline", summary="Start baseline evaluation in background")
+async def run_baseline(background_tasks: BackgroundTasks):
+    global _inference_agent, _last_benchmark_results
+    log.info("[UI CALL] /run-baseline (Background)")
+    if _inference_agent.is_running:
+        return {"status": "already_running", "message": "Benchmark is currently in progress."}
+    
+    agent_status = _inference_agent # Reuse status tracking
+    agent_status.is_running = True
+    agent_status.current_status = "Running baseline..."
+
+    async def wrapped_baseline():
+        global _last_benchmark_results
+        try:
+            log.info("Starting baseline background task...")
+            # run_baseline_agent is synchronous, run in thread
+            results = await asyncio.to_thread(run_baseline_agent)
+            avg_score = round(sum(r["final_score"] for r in results.values()) / len(results), 4) if results else 0
+            
+            _last_benchmark_results = {
+                "baseline_agent": "rule-based",
+                "results": results,
+                "average_score": avg_score,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+            log.info("Baseline background task complete.")
+        finally:
+            agent_status.is_running = False
+            agent_status.current_status = "idle"
+
+    background_tasks.add_task(wrapped_baseline)
+    return {"status": "started", "message": "Baseline evaluation started in background."}
+
+
+@app.get("/benchmark-results", summary="Get the results of the last benchmark run")
+def get_benchmark_results():
+    global _last_benchmark_results
+    if _last_benchmark_results is None:
+        raise HTTPException(status_code=404, detail="No benchmark results found.")
+    return _last_benchmark_results
+
+
+@app.post("/run-llm-benchmark", summary="Start full LLM-based evaluation in background")
+async def run_llm_benchmark(background_tasks: BackgroundTasks):
+    global _inference_agent, _last_benchmark_results
+    log.info("[UI CALL] /run-llm-benchmark (Background)")
+    if _inference_agent.is_running:
+        return {"status": "already_running", "message": "Benchmark is currently in progress."}
+    
+    async def wrapped_task():
+        global _last_benchmark_results
+        try:
+            results = await run_llm_benchmark_task(_inference_agent, "http://localhost:7860")
+            avg_score = 0.0
+            if results and len(results) > 0:
+                avg_score = round(sum(r.get("final_score", 0.0) for r in results.values()) / len(results), 4)
+            
+            _last_benchmark_results = {
+                "baseline_agent": "llm-agent (llama-3.1)",
+                "results": results,
+                "average_score": avg_score,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+        except Exception as e:
+            log.error(f"Error in wrapped inference task: {e}")
+
+    background_tasks.add_task(wrapped_task)
+    return {"status": "started", "message": "LLM evaluation started in background."}
+
+
+@app.get("/inference-status", summary="Get status of the running LLM agent")
+def inference_status():
+    global _inference_agent
     return {
-        "baseline_agent": "rule-based",
-        "results": results,
-        "average_score": round(
-            sum(r["final_score"] for r in results.values()) / len(results), 4
-        ),
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "is_running": _inference_agent.is_running,
+        "current_task": _inference_agent.current_task,
+        "status_message": _inference_agent.current_status
     }
+
+
+@app.get("/baseline-suggestion", summary="Get a suggestion from the baseline agent for current state")
+def baseline_suggestion():
+    """Returns the 'best' next action for the current environment state."""
+    global _env
+    if _env is None:
+        raise HTTPException(status_code=400, detail="Environment not initialized.")
+    if _env._done:
+        return {"action": "finish", "parameters": {}}
+
+    state = _env.state()
+    task_id = state["task_id"]
+    obs = _env._build_observation()
+    ctx = obs.context
+
+    if task_id == "email_triage":
+        action = _suggest_email_action(ctx)
+    elif task_id == "code_review":
+        action = _suggest_code_action(ctx)
+    elif task_id == "meeting_scheduler":
+        action = _suggest_meeting_action(ctx)
+    else:
+        action = "skip"
+
+    return {"action": action, "parameters": {}}
+
+
+def _suggest_email_action(ctx: Dict) -> str:
+    sender = ctx.get("from", "").lower()
+    subject = ctx.get("subject", "").lower()
+    body = ctx.get("body_preview", "").lower()
+    full_text = f"{sender} {subject} {body}"
+    
+    SPAM_SIGNALS = {"promo", "flash sale", "survey", "noreply@survey", "noreply@promo", "deals.xyz"}
+    if any(sig in full_text for sig in SPAM_SIGNALS):
+        return "delete_email"
+    
+    if "ceo@" in sender: return "respond_confirm_attendance"
+    if "urgent" in subject or "outage" in subject or "degraded" in subject:
+        return "respond_escalate_incident"
+    if "board meeting" in subject or "confirm attendance" in subject:
+        return "respond_confirm_attendance"
+    if "compliance" in subject or "legal" in subject:
+        return "respond_request_legal_review"
+    
+    return "prioritize_medium"
+
+
+def _suggest_code_action(ctx: Dict) -> str:
+    stage = ctx.get("stage", "detect_bug")
+    code = ctx.get("code", "").lower()
+    title = ctx.get("title", "").lower()
+    combined = code + " " + title
+
+    # Minimal heuristic mapping
+    if "sql" in combined: bug, fix, sev = "security_vulnerability", "parameterized_query", "critical"
+    elif "thread" in combined: bug, fix, sev = "concurrency_issue", "add_lock_or_atomic", "critical"
+    elif "open(" in combined: bug, fix, sev = "resource_leak", "use_context_manager", "major"
+    elif "lst=[]" in combined: bug, fix, sev = "logic_error", "use_none_default", "minor"
+    elif "int(" in combined: bug, fix, sev = "error_handling", "add_try_except", "major"
+    else: bug, fix, sev = "logic_error", "boundary_correction", "major"
+
+    if stage == "detect_bug": return f"detect_{bug}"
+    if stage == "suggest_fix": return f"fix_{fix}"
+    if stage == "set_severity": return f"severity_{sev}"
+    if stage == "verdict": return "reject_code"
+    return "finish_review"
+
+
+def _suggest_meeting_action(ctx: Dict) -> str:
+    from tasks.meeting_scheduler import ALL_SLOTS
+    preferred = ctx.get("preferred_slots", [])
+    duration = ctx.get("duration_slots", 1)
+    
+    if preferred:
+        for slot in preferred:
+            if slot in ALL_SLOTS:
+                idx = ALL_SLOTS.index(slot)
+                if idx + duration <= len(ALL_SLOTS):
+                    return f"schedule_{slot.replace(':', '')}"
+    
+    if ctx.get("must_schedule", False):
+        return f"schedule_{ALL_SLOTS[0].replace(':', '')}"
+    
+    return "cancel_meeting"
 
 
 # ── Baseline Agent ─────────────────────────────────────────────────────────
