@@ -19,6 +19,7 @@ import sys
 import os
 import time
 import logging
+import asyncio
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
